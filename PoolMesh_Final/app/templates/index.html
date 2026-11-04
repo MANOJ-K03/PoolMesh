@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PoolMesh DB - Campus Carpooling System | BCSE302P Review III</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            },
+            navy: {
+              800: '#0f172a',
+              900: '#090d16',
+              950: '#030712',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #1f2937; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Logo & Review Info -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20 text-xl">
+          PM
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+              PoolMesh <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Review III Live</span>
+            </h1>
+            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">BCSE302P Database Systems</span>
+          </div>
+          <p class="text-xs text-slate-400">
+            VIT Vellore &bull; Manoj Kumar S (24BDE0052) &bull; Manoj K (24BDE0147) &bull; S M Nithin (24BDE0033)
+          </p>
+        </div>
+      </div>
+
+      <!-- Live DB Status & Controls -->
+      <div class="flex items-center gap-3">
+        <!-- DB Engine Indicator -->
+        <div class="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300 font-mono">Oracle XE 11g (Port 1521)</span>
+          <span class="text-slate-500">|</span>
+          <span class="text-emerald-400 font-semibold" id="headerSeedRows">126 Rows</span>
+        </div>
+
+        <!-- User Switcher Dropdown -->
+        <div class="flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700">
+          <i data-lucide="user" class="w-4 h-4 text-emerald-400 ml-1"></i>
+          <label class="text-xs text-slate-400 font-medium">Logged in:</label>
+          <select id="userSelector" onchange="switchUser(this.value)" class="bg-slate-900 text-emerald-400 font-semibold text-xs rounded-lg px-2 py-1.5 border border-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <!-- SQL Inspector Drawer Toggle -->
+        <button onclick="toggleSqlDrawer()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 transition">
+          <i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span class="font-medium">Show SQL</span>
+          <span id="sqlCountBadge" class="bg-cyan-500/20 text-cyan-300 px-1.5 py-0.2 rounded text-[10px] font-mono">0</span>
+        </button>
+
+        <!-- Reset DB Button -->
+        <button onclick="confirmResetDb()" class="flex items-center gap-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs px-3 py-2 rounded-lg border border-red-800/60 transition" title="Reset DB to 126 seed rows">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Reset Seed</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto custom-scroll border-t border-slate-800/80 gap-1 py-1.5">
+      <button onclick="setTab('dashboard')" id="tabBtn-dashboard" class="nav-tab active flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-slate-800 transition">
+        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-emerald-400"></i> Dashboard & My Trips
+      </button>
+      <button onclick="setTab('rides')" id="tabBtn-rides" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="search" class="w-3.5 h-3.5 text-teal-400"></i> Find & Book Rides
+      </button>
+      <button onclick="setTab('offer')" id="tabBtn-offer" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-blue-400"></i> Offer Ride
+      </button>
+      <button onclick="setTab('ratings')" id="tabBtn-ratings" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400"></i> Rate Trips & Trust
+      </button>
+      <button onclick="setTab('queries')" id="tabBtn-queries" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-400"></i> 20 SQL Queries
+      </button>
+      <button onclick="setTab('demo')" id="tabBtn-demo" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="play-circle" class="w-3.5 h-3.5 text-rose-400"></i> Guided Demo (T1-T5)
+      </button>
+      <button onclick="setTab('selftest')" id="tabBtn-selftest" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Self-Test (19 Proofs)
+      </button>
+      <button onclick="setTab('architecture')" id="tabBtn-architecture" class="nav-tab flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i> Schema & ER
+      </button>
+    </div>
+  </header>
+
+  <!-- USER SUMMARY BAR -->
+  <div id="userBar" class="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-b border-slate-800 py-2.5 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div class="flex items-center gap-3">
+        <div id="uAvatar" class="w-8 h-8 rounded-full bg-emerald-600 font-bold flex items-center justify-center text-white text-sm shadow">
+          ?
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="uName" class="font-bold text-slate-100 text-sm">Loading user...</span>
+            <span id="uRoleBadge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">RIDER</span>
+            <span id="uGenderBadge" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">Female</span>
+          </div>
+          <span id="uEmailPhone" class="text-slate-400 text-[11px]"></span>
+        </div>
+      </div>
+
+      <!-- User Stats Badges -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Wallet -->
+        <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider">Wallet Balance</div>
+            <div class="font-bold text-emerald-400 font-mono text-sm">Rs <span id="uWallet">0.00</span></div>
+          </div>
+          <button onclick="openTopupModal()" class="ml-1 text-[11px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40 transition">
+            + Top Up
+          </button>
+        </div>
+
+        <!-- Trust Score -->
+        <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <i data-lucide="shield" class="w-4 h-4 text-cyan-400"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider">Trust Score</div>
+            <div class="flex items-center gap-1.5">
+              <span id="uTrustScore" class="font-bold text-cyan-300 font-mono text-sm">100</span>
+              <span id="uTrustBadge" class="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-emerald-500/20 text-emerald-400">Excellent</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Green Points -->
+        <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <i data-lucide="leaf" class="w-4 h-4 text-lime-400"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider">Green Points</div>
+            <div class="font-bold text-lime-400 font-mono text-sm"><span id="uGreenPoints">0</span> pts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+
+    <!-- ==================== TAB 1: DASHBOARD ==================== -->
+    <div id="tabContent-dashboard" class="tab-pane space-y-6">
+      
+      <!-- Top KPIs -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i data-lucide="car" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Open Pool Rides</div>
+            <div class="text-xl font-bold text-white font-mono" id="kpiOpenRides">-</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <i data-lucide="ticket" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Confirmed Seats</div>
+            <div class="text-xl font-bold text-white font-mono" id="kpiConfirmedBookings">-</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-lime-500/10 border border-lime-500/20 flex items-center justify-center text-lime-400">
+            <i data-lucide="leaf" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">CO₂ Saved Total</div>
+            <div class="text-xl font-bold text-white font-mono"><span id="kpiCo2">-</span> kg</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <i data-lucide="coins" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-medium">Completed Revenue</div>
+            <div class="text-xl font-bold text-white font-mono">Rs <span id="kpiRevenue">-</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Bookings (Rider View) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="ticket" class="w-4 h-4 text-emerald-400"></i>
+            <h2 class="text-sm font-bold text-slate-100">My Bookings (as Passenger)</h2>
+          </div>
+          <button onclick="setTab('rides')" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+            Book a new ride &rarr;
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono text-[10px]">
+              <tr>
+                <th class="py-2.5 px-4">Booking ID</th>
+                <th class="py-2.5 px-4">Ride Route</th>
+                <th class="py-2.5 px-4">Departure</th>
+                <th class="py-2.5 px-4">Seats</th>
+                <th class="py-2.5 px-4">Fare Paid</th>
+                <th class="py-2.5 px-4">Driver</th>
+                <th class="py-2.5 px-4">Status</th>
+                <th class="py-2.5 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="myBookingsTableBody" class="divide-y divide-slate-800 text-slate-200">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- My Offered Rides (Driver View) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="car" class="w-4 h-4 text-teal-400"></i>
+            <h2 class="text-sm font-bold text-slate-100">My Offered Rides (as Driver)</h2>
+          </div>
+          <button onclick="setTab('offer')" class="text-xs text-teal-400 hover:text-teal-300 font-medium flex items-center gap-1">
+            Publish new ride &rarr;
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono text-[10px]">
+              <tr>
+                <th class="py-2.5 px-4">Ride ID</th>
+                <th class="py-2.5 px-4">Route</th>
+                <th class="py-2.5 px-4">Departure</th>
+                <th class="py-2.5 px-4">Vehicle</th>
+                <th class="py-2.5 px-4">Seats Left</th>
+                <th class="py-2.5 px-4">Type</th>
+                <th class="py-2.5 px-4">Status</th>
+                <th class="py-2.5 px-4 text-right">Cursor Action</th>
+              </tr>
+            </thead>
+            <tbody id="myOfferedRidesTableBody" class="divide-y divide-slate-800 text-slate-200">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 2: FIND & BOOK RIDES ==================== -->
+    <div id="tabContent-rides" class="tab-pane hidden space-y-5">
+      
+      <!-- Filter Bar -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center gap-3">
+        <div class="flex-1 min-w-[200px]">
+          <label class="text-[10px] uppercase font-mono text-slate-400 block mb-1">From Source</label>
+          <input type="text" id="filterSrc" placeholder="e.g. Main Gate, Katpadi..." oninput="loadRides()"
+                 class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="flex-1 min-w-[200px]">
+          <label class="text-[10px] uppercase font-mono text-slate-400 block mb-1">To Destination</label>
+          <input type="text" id="filterDst" placeholder="e.g. Airport, Bengaluru, Central..." oninput="loadRides()"
+                 class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="flex items-center gap-2 pt-4">
+          <input type="checkbox" id="filterHubOnly" onchange="loadRides()" class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
+          <label for="filterHubOnly" class="text-xs text-slate-300 cursor-pointer">Campus Hubs Only (VIT Gate/Katpadi)</label>
+        </div>
+        <div class="pt-4 ml-auto">
+          <button onclick="loadRides()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Rides
+          </button>
+        </div>
+      </div>
+
+      <!-- Rides Grid -->
+      <div id="ridesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: OFFER RIDE ==================== -->
+    <div id="tabContent-offer" class="tab-pane hidden max-w-2xl mx-auto space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
+          <div class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <i data-lucide="plus-circle" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-white">Offer / Publish a New Pool Ride</h2>
+            <p class="text-xs text-slate-400">Driver accounts offer trips. Generates key via seq_ride.NEXTVAL</p>
+          </div>
+        </div>
+
+        <div id="offerRoleNotice" class="hidden mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+          <span>Current user is registered as <strong>RIDER</strong>. By constraint <code>ck_user_license</code>, only DRIVER or BOTH can publish rides. Switch user above to Manoj, Divya, Priya, etc.</span>
+        </div>
+
+        <form id="offerRideForm" onsubmit="handleOfferRide(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Select Your Vehicle</label>
+            <select id="offerVehicle" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Source Location</label>
+              <select id="offerSource" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Destination Location</label>
+              <select id="offerDest" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Departure Date & Time</label>
+              <input type="datetime-local" id="offerDeparture" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Estimated Distance (km)</label>
+              <input type="number" step="0.1" id="offerDistance" placeholder="e.g. 135" required min="1" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Base Rate (Rs/km)</label>
+              <input type="number" step="0.1" id="offerRate" value="3.0" required min="0.5" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Seats Offered</label>
+              <input type="number" id="offerSeats" value="3" required min="1" max="6" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Ride Safety Type</label>
+              <select id="offerRideType" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                <option value="GENERAL">GENERAL (All)</option>
+                <option value="WOMEN_ONLY">WOMEN_ONLY</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="offerSubmitBtn" class="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+            <i data-lucide="upload" class="w-4 h-4"></i> Publish Ride to Database
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 4: RATINGS & TRUST ==================== -->
+    <div id="tabContent-ratings" class="tab-pane hidden max-w-3xl mx-auto space-y-6">
+      
+      <!-- Explanation Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-start gap-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+          <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        </div>
+        <div class="space-y-1 text-xs">
+          <h3 class="font-bold text-white text-sm">Real-time Trust Score Engine (Trigger trg_rating_trust)</h3>
+          <p class="text-slate-300">
+            When a rating is inserted, Oracle trigger <code>trg_rating_trust</code> automatically updates the ratee's Trust Score:
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1 font-mono text-[11px]">
+            <span class="bg-emerald-950/60 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800">5 ★ = +2 pts</span>
+            <span class="bg-teal-950/60 text-teal-400 px-2 py-0.5 rounded border border-teal-800">4 ★ = +1 pt</span>
+            <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">3 ★ = 0 pts</span>
+            <span class="bg-amber-950/60 text-amber-400 px-2 py-0.5 rounded border border-amber-800">2 ★ = -3 pts</span>
+            <span class="bg-red-950/60 text-red-400 px-2 py-0.5 rounded border border-red-800">1 ★ = -5 pts</span>
+          </div>
+          <p class="text-slate-400 pt-1">
+            Function <code>fn_trust_level(score)</code> classifies: &ge;80 <strong>Excellent</strong>, 40-79 <strong>Good</strong>, &lt;40 <strong>Watchlist</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Pending Ratings -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i> Completed Trips Pending Your Feedback
+        </h3>
+        <div id="pendingRatingsContainer" class="space-y-3">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 5: 20 SQL QUERIES ==================== -->
+    <div id="tabContent-queries" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Query Selector List -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 lg:max-h-[750px] overflow-y-auto custom-scroll">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-400"></i> Review II Queries (1 - 20)
+            </h3>
+            <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded font-mono">20 Total</span>
+          </div>
+          <div id="queriesListContainer" class="space-y-1.5">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Query Runner & Table Output -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <span id="activeQCategory" class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 uppercase font-semibold">Q1</span>
+                <h3 id="activeQTitle" class="text-base font-bold text-white mt-1">Select a query from the left</h3>
+                <p id="activeQDesc" class="text-xs text-slate-400 mt-0.5"></p>
+              </div>
+              <button id="runQueryBtn" onclick="runActiveQuery()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-2 transition flex-shrink-0 shadow-lg shadow-indigo-600/20">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i> Run Query Live
+              </button>
+            </div>
+
+            <!-- SQL Code Box -->
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative group">
+              <div class="text-[10px] text-slate-500 font-mono mb-1 uppercase tracking-wider">Oracle SQL Statement:</div>
+              <pre id="activeQSql" class="text-xs text-emerald-400 overflow-x-auto custom-scroll max-h-48 py-1"></pre>
+            </div>
+
+            <!-- Execution Result Meta -->
+            <div id="queryMetaBar" class="hidden flex items-center justify-between text-xs border-t border-slate-800 pt-3 text-slate-400">
+              <div class="flex items-center gap-3">
+                <span>Returned: <strong id="queryRowsCount" class="text-white font-mono">0</strong> rows</span>
+                <span>Time: <strong id="queryExecTime" class="text-emerald-400 font-mono">0 ms</strong></span>
+              </div>
+              <span class="text-[11px] text-slate-500">Live query executed against Oracle XE</span>
+            </div>
+          </div>
+
+          <!-- Query Result Table -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto custom-scroll max-h-[450px]">
+              <table class="w-full text-xs text-left">
+                <thead id="queryResultThead" class="bg-slate-800 text-slate-300 uppercase font-mono text-[10px] sticky top-0">
+                  <!-- Columns JS -->
+                </thead>
+                <tbody id="queryResultTbody" class="divide-y divide-slate-800 text-slate-200">
+                  <tr><td class="py-8 text-center text-slate-500" colspan="10">Click "Run Query Live" above to view results from Oracle database.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== TAB 6: GUIDED DEMO (T1-T5) ==================== -->
+    <div id="tabContent-demo" class="tab-pane hidden space-y-6">
+      
+      <!-- Demo Introduction Banner -->
+      <div class="bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border border-rose-800/40 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase">Review II &amp; III Showcase</span>
+            <h2 class="text-base font-bold text-white">Live Guided Demonstration (Transactions T1 to T5)</h2>
+          </div>
+          <p class="text-xs text-slate-300 max-w-2xl">
+            This continuous story exercises all 3 stored procedures, 3 functions, 1 explicit cursor, and 3 triggers.
+            Run each transaction to inspect the exact database processing and side-by-side BEFORE/AFTER tables!
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="confirmResetDb()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset to Seed Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Transaction Cards List -->
+      <div id="demoStepsContainer" class="space-y-4">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- ==================== TAB 7: SELF-TEST (19 PROOFS) ==================== -->
+    <div id="tabContent-selftest" class="tab-pane hidden space-y-6">
+      
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h2 class="text-base font-bold text-white">Automated Review II Proof Tests (19 Checks)</h2>
+          </div>
+          <p class="text-xs text-slate-400 mt-1 max-w-2xl">
+            Executes all 8 constraint enforcement violations, 3 trigger checks (rolled back), 4 procedure validations,
+            and 4 stored function mathematical assertions directly against Oracle XE.
+          </p>
+        </div>
+        <button onclick="runSelftestSuite()" id="runSelftestBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-600/20">
+          <i data-lucide="play" class="w-4 h-4"></i> Run All 19 Proof Tests
+        </button>
+      </div>
+
+      <!-- Test Summary Scorecard -->
+      <div id="selftestScorecard" class="hidden grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div class="text-xs text-slate-400">Total Checks</div>
+          <div class="text-2xl font-bold text-white font-mono" id="stTotal">19</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div class="text-xs text-emerald-400">Passed</div>
+          <div class="text-2xl font-bold text-emerald-400 font-mono" id="stPassed">19</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div class="text-xs text-rose-400">Failed</div>
+          <div class="text-2xl font-bold text-rose-400 font-mono" id="stFailed">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div class="text-xs text-slate-400">Execution Time</div>
+          <div class="text-2xl font-bold text-cyan-400 font-mono" id="stTime">0 ms</div>
+        </div>
+      </div>
+
+      <!-- Test Results Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-800 text-slate-300 uppercase font-mono text-[10px]">
+            <tr>
+              <th class="py-2.5 px-4">#</th>
+              <th class="py-2.5 px-4">Category</th>
+              <th class="py-2.5 px-4">Test Description</th>
+              <th class="py-2.5 px-4">Expected ORA / Output</th>
+              <th class="py-2.5 px-4">Oracle Engine Response</th>
+              <th class="py-2.5 px-4 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody id="selftestTableBody" class="divide-y divide-slate-800 text-slate-200">
+            <tr>
+              <td class="py-8 text-center text-slate-500" colspan="6">
+                Click "Run All 19 Proof Tests" to execute the test suite against Oracle.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 8: ARCHITECTURE & SCHEMA ==================== -->
+    <div id="tabContent-architecture" class="tab-pane hidden space-y-6">
+      
+      <!-- Database Object Inventory Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-emerald-400 font-mono">8</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Tables</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-cyan-400 font-mono">99</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Constraints</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-blue-400 font-mono">8</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Sequences</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-purple-400 font-mono">20</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">SQL Queries</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-amber-400 font-mono">3</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Functions</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-teal-400 font-mono">3</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Procedures</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-2xl font-extrabold text-rose-400 font-mono">3</div>
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Triggers</div>
+        </div>
+      </div>
+
+      <!-- Relational Schema Cards -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="table" class="w-4 h-4 text-emerald-400"></i> Relational Database Schema (3NF)
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+          
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">USERS</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>user_id</u>, full_name, email [UQ], phone [UQ], gender, role, license_no [UQ], wallet_balance, trust_score, green_points, joined_on)
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">VEHICLES</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>vehicle_id</u>, <em>owner_id</em> &rarr; USERS, reg_no [UQ], model, fuel_type, seat_capacity, emission_g_per_km)
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">LOCATIONS</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>location_id</u>, loc_name, city, is_campus_hub, latitude, longitude)
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">RIDES</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>ride_id</u>, <em>driver_id</em> &rarr; USERS, <em>vehicle_id</em> &rarr; VEHICLES, <em>source_id</em> &rarr; LOCATIONS, <em>dest_id</em> &rarr; LOCATIONS, departure_time, distance_km, base_fare_per_km, seats_available, ride_type, status)
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">BOOKINGS</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>booking_id</u>, <em>ride_id</em> &rarr; RIDES, <em>rider_id</em> &rarr; USERS, seats_booked, fare_amount, booking_status, booked_at) [UQ: ride_id + rider_id]
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">PAYMENTS</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>payment_id</u>, <em>booking_id</em> &rarr; BOOKINGS [UQ], amount, pay_mode, pay_status, paid_at)
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">RATINGS</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>rating_id</u>, <em>booking_id</em> &rarr; BOOKINGS, <em>rater_id</em> &rarr; USERS, <em>ratee_id</em> &rarr; USERS, stars, comments, rated_at) [UQ: booking_id + rater_id]
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">CARBON_LEDGER</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              (<u>ledger_id</u>, <em>booking_id</em> &rarr; BOOKINGS [UQ], co2_saved_kg, points_earned, logged_at)
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================== BOOKING MODAL ==================== -->
+  <div id="bookingModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-5">
+      <button onclick="closeBookingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div>
+        <span id="bmRideTypeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase bg-emerald-500/20 text-emerald-400">GENERAL</span>
+        <h3 id="bmRoute" class="text-base font-bold text-white mt-1">Route</h3>
+        <p id="bmDetails" class="text-xs text-slate-400"></p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Seats Selector -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Number of Seats to Book</label>
+          <div class="flex items-center gap-3">
+            <input type="range" id="bmSeatsSlider" min="1" max="4" value="1" oninput="updateBookingFareMath()" class="flex-1 accent-emerald-500">
+            <span id="bmSeatsDisplay" class="font-bold text-white font-mono text-sm w-12 text-center bg-slate-950 py-1 rounded border border-slate-800">1 seat</span>
+          </div>
+        </div>
+
+        <!-- Live Fare Calculation Breakdown Box -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Base Fare Calculation:</span>
+            <span id="bmCalcFormula" class="font-mono text-slate-200">135 km &times; Rs 3.00 &times; 1 = Rs 405.00</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Occupancy Pooled Discount:</span>
+            <span id="bmCalcDiscount" class="font-mono text-emerald-400">0% (Rs 0.00 saved)</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Green Points Deduction:</span>
+            <span id="bmPointsDeduction" class="font-mono text-lime-400">- Rs 0.00 (0 pts)</span>
+          </div>
+          <div class="border-t border-slate-800 pt-2 flex items-center justify-between font-bold text-sm">
+            <span class="text-white">Final Payable Fare:</span>
+            <span id="bmFinalFare" class="font-mono text-emerald-400 text-base">Rs 405.00</span>
+          </div>
+          <div class="text-[10px] text-slate-500 pt-1">
+            Calculated live using Oracle stored function <code>fn_calc_fare(ride_id, seats)</code>.
+          </div>
+        </div>
+
+        <!-- Green Points Redemption Input -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">
+            Redeem Green Points (Available: <span id="bmUserPoints" class="text-lime-400 font-mono">0</span> pts)
+          </label>
+          <input type="number" id="bmPointsInput" value="0" min="0" oninput="updateBookingFareMath()"
+                 class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-lime-500">
+          <span class="text-[10px] text-slate-500">1 Green Point = Rs 0.50 discount (max 20% of fare).</span>
+        </div>
+
+        <!-- Payment Mode -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Payment Method</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 cursor-pointer hover:border-emerald-500 transition">
+              <input type="radio" name="bmPayMode" value="WALLET" checked class="accent-emerald-500">
+              <span>WALLET</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 cursor-pointer hover:border-emerald-500 transition">
+              <input type="radio" name="bmPayMode" value="UPI" class="accent-emerald-500">
+              <span>UPI</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 cursor-pointer hover:border-emerald-500 transition">
+              <input type="radio" name="bmPayMode" value="CASH" class="accent-emerald-500">
+              <span>CASH</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Confirm Button -->
+        <button onclick="submitBooking()" id="bmSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
+          <i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Booking (sp_book_ride)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOP UP MODAL ==================== -->
+  <div id="topupModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative space-y-4">
+      <button onclick="closeTopupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <i data-lucide="wallet" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white">Top Up Wallet</h3>
+          <p class="text-xs text-slate-400" id="topupUserName">User</p>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Enter Amount (Rs)</label>
+        <input type="number" id="topupAmount" value="500" min="10" step="50" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono">
+      </div>
+      <div class="flex gap-2">
+        <button onclick="setTopupPreset(200)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded text-slate-300">+200</button>
+        <button onclick="setTopupPreset(500)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded text-slate-300">+500</button>
+        <button onclick="setTopupPreset(1000)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded text-slate-300">+1000</button>
+      </div>
+      <button onclick="submitTopup()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl transition">
+        Confirm Top Up
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== RATING MODAL ==================== -->
+  <div id="ratingModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+      <button onclick="closeRatingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 uppercase font-semibold">Post-Trip Feedback</span>
+        <h3 id="rmTitle" class="text-sm font-bold text-white mt-1">Rate Driver / Co-rider</h3>
+        <p id="rmSubtitle" class="text-xs text-slate-400"></p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Stars (1 to 5)</label>
+        <div class="flex items-center gap-2" id="starPicker">
+          <!-- 5 star buttons -->
+          <button type="button" onclick="setRatingStars(1)" class="star-btn text-2xl text-amber-400 hover:scale-110 transition">&#9733;</button>
+          <button type="button" onclick="setRatingStars(2)" class="star-btn text-2xl text-amber-400 hover:scale-110 transition">&#9733;</button>
+          <button type="button" onclick="setRatingStars(3)" class="star-btn text-2xl text-amber-400 hover:scale-110 transition">&#9733;</button>
+          <button type="button" onclick="setRatingStars(4)" class="star-btn text-2xl text-amber-400 hover:scale-110 transition">&#9733;</button>
+          <button type="button" onclick="setRatingStars(5)" class="star-btn text-2xl text-amber-400 hover:scale-110 transition">&#9733;</button>
+          <span id="starRatingLabel" class="ml-2 text-xs font-mono font-bold text-amber-400">5 Stars (+2 Trust)</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Comments (Optional)</label>
+        <textarea id="rmComment" rows="2" placeholder="e.g. Smooth driving, punctual pickup..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
+      </div>
+
+      <button onclick="submitRating()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition shadow-lg shadow-amber-500/20">
+        Submit Rating &amp; Trigger Trust Recalculation
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== SQL INSPECTOR DRAWER ==================== -->
+  <div id="sqlDrawer" class="hidden fixed bottom-0 right-0 z-50 w-full sm:w-[540px] max-h-[500px] bg-slate-950 border-t sm:border-l border-slate-800 shadow-2xl rounded-tl-2xl flex flex-col">
+    <div class="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
+        <h4 class="text-xs font-bold text-white">Live Oracle SQL / PL-SQL Inspector</h4>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="refreshSqlHistory()" class="text-slate-400 hover:text-cyan-400 text-xs" title="Refresh">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="toggleSqlDrawer()" class="text-slate-400 hover:text-white text-xs">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+    <div id="sqlLogsContainer" class="p-3 overflow-y-auto custom-scroll flex-1 space-y-2 text-[11px] font-mono">
+      <div class="text-slate-500 text-center py-4">No SQL operations executed yet.</div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT APPLICATION CODE -->
+  <script>
+    // State
+    let currentUserId = 12; // default: Fathima Begum
+    let currentUser = null;
+    let allUsers = [];
+    let allLocations = [];
+    let selectedRatingStars = 5;
+    let pendingRatingTarget = null;
+    let activeBookingRide = null;
+    let activeBookingCalculation = null;
+    let activeQueryNo = 1;
+    let allQueries = [];
+
+    // Initialize App
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      await loadUsers();
+      await loadLocations();
+      await switchUser(12);
+      await loadStats();
+      await loadQueries();
+      await loadDemoSteps();
+      loadRides();
+      refreshSqlHistory();
+      setInterval(refreshSqlHistory, 4000);
+    });
+
+    function setTab(tabName) {
+      document.querySelectorAll(".tab-pane").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".nav-tab").forEach(el => {
+        el.classList.remove("text-white", "bg-slate-800");
+        el.classList.add("text-slate-400");
+      });
+
+      const pane = document.getElementById("tabContent-" + tabName);
+      const btn = document.getElementById("tabBtn-" + tabName);
+      if (pane) pane.classList.remove("hidden");
+      if (btn) {
+        btn.classList.add("text-white", "bg-slate-800");
+        btn.classList.remove("text-slate-400");
+      }
+
+      if (tabName === 'dashboard') loadUserDashboard();
+      if (tabName === 'rides') loadRides();
+      if (tabName === 'ratings') loadPendingRatings();
+      if (tabName === 'queries' && allQueries.length > 0) selectQuery(activeQueryNo);
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+        document.getElementById("kpiOpenRides").innerText = data.open_rides;
+        document.getElementById("kpiConfirmedBookings").innerText = data.confirmed_bookings;
+        document.getElementById("kpiCo2").innerText = data.total_co2_kg;
+        document.getElementById("kpiRevenue").innerText = data.total_revenue;
+        const totalRows = Object.values(data.counts).reduce((a, b) => a + b, 0);
+        document.getElementById("headerSeedRows").innerText = totalRows + " Rows";
+      } catch (e) {
+        console.error("Stats load error", e);
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch("/api/users");
+        allUsers = await res.json();
+        const sel = document.getElementById("userSelector");
+        sel.innerHTML = allUsers.map(u => 
+          `<option value="${u.user_id}">${u.user_id}. ${u.full_name} (${u.role}, ${u.gender})</option>`
+        ).join("");
+        sel.value = currentUserId;
+      } catch (e) {
+        console.error("Users load error", e);
+      }
+    }
+
+    async function loadLocations() {
+      try {
+        const res = await fetch("/api/locations");
+        allLocations = await res.json();
+        
+        const populateSelect = (id) => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.innerHTML = allLocations.map(l => 
+              `<option value="${l.location_id}">${l.loc_name} (${l.city})${l.is_campus_hub === 'Y' ? ' [HUB]' : ''}</option>`
+            ).join("");
+          }
+        };
+        populateSelect("offerSource");
+        populateSelect("offerDest");
+      } catch (e) {
+        console.error("Locations load error", e);
+      }
+    }
+
+    async function switchUser(userId) {
+      currentUserId = parseInt(userId);
+      document.getElementById("userSelector").value = currentUserId;
+      await loadUserDashboard();
+      loadRides();
+      loadPendingRatings();
+      showToast(`Switched active user to #${currentUserId}`, "info");
+    }
+
+    async function loadUserDashboard() {
+      try {
+        const res = await fetch(`/api/user/${currentUserId}`);
+        currentUser = await res.json();
+
+        // Update header & user bar
+        document.getElementById("uName").innerText = currentUser.full_name;
+        document.getElementById("uAvatar").innerText = currentUser.full_name.charAt(0);
+        document.getElementById("uRoleBadge").innerText = currentUser.role;
+        document.getElementById("uGenderBadge").innerText = currentUser.gender === 'F' ? 'Female' : 'Male';
+        document.getElementById("uEmailPhone").innerText = `${currentUser.email} • ${currentUser.phone}`;
+        document.getElementById("uWallet").innerText = Number(currentUser.wallet_balance).toFixed(2);
+        document.getElementById("uTrustScore").innerText = currentUser.trust_score;
+        document.getElementById("uGreenPoints").innerText = currentUser.green_points;
+
+        const trustBadge = document.getElementById("uTrustBadge");
+        trustBadge.innerText = currentUser.trust_level;
+        if (currentUser.trust_level === 'Excellent') {
+          trustBadge.className = "text-[10px] px-1.5 py-0.2 rounded font-semibold bg-emerald-500/20 text-emerald-400";
+        } else if (currentUser.trust_level === 'Good') {
+          trustBadge.className = "text-[10px] px-1.5 py-0.2 rounded font-semibold bg-blue-500/20 text-blue-400";
+        } else {
+          trustBadge.className = "text-[10px] px-1.5 py-0.2 rounded font-semibold bg-rose-500/20 text-rose-400 animate-pulse";
+        }
+
+        // Render My Bookings
+        const bBody = document.getElementById("myBookingsTableBody");
+        if (currentUser.bookings.length === 0) {
+          bBody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">No bookings yet. Check "Find & Book Rides" to reserve a carpool seat!</td></tr>`;
+        } else {
+          bBody.innerHTML = currentUser.bookings.map(b => {
+            const isConfirmed = b.booking_status === 'CONFIRMED';
+            const statusClass = isConfirmed ? 'bg-emerald-500/20 text-emerald-300' :
+                               (b.booking_status === 'CANCELLED' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300');
+            return `
+              <tr class="hover:bg-slate-800/40 transition">
+                <td class="py-3 px-4 font-mono font-bold text-slate-300">#${b.booking_id}</td>
+                <td class="py-3 px-4">
+                  <div class="font-semibold text-white">${b.source} &rarr; ${b.destination}</div>
+                  <div class="text-[10px] text-slate-400">Ride #${b.ride_id} (${b.ride_status})</div>
+                </td>
+                <td class="py-3 px-4 font-mono text-slate-300">${b.departs}</td>
+                <td class="py-3 px-4 font-mono">${b.seats_booked}</td>
+                <td class="py-3 px-4 font-mono font-semibold text-emerald-400">Rs ${Number(b.fare_amount).toFixed(2)}</td>
+                <td class="py-3 px-4 text-slate-300">${b.driver_name}</td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${statusClass}">${b.booking_status}</span>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  ${isConfirmed ? `
+                    <button onclick="cancelBooking(${b.booking_id})" class="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-2.5 py-1 rounded border border-red-500/30 text-[11px] font-medium transition">
+                      Cancel (Refund)
+                    </button>
+                  ` : '<span class="text-slate-500 text-[11px]">-</span>'}
+                </td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        // Render My Offered Rides
+        const rBody = document.getElementById("myOfferedRidesTableBody");
+        if (currentUser.offered_rides.length === 0) {
+          rBody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">You have not published any rides yet.</td></tr>`;
+        } else {
+          rBody.innerHTML = currentUser.offered_rides.map(r => {
+            const isOpen = r.status === 'OPEN' || r.status === 'FULL';
+            const statusClass = r.status === 'OPEN' ? 'bg-emerald-500/20 text-emerald-300' :
+                               (r.status === 'FULL' ? 'bg-purple-500/20 text-purple-300' :
+                               (r.status === 'COMPLETED' ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-700 text-slate-400'));
+            return `
+              <tr class="hover:bg-slate-800/40 transition">
+                <td class="py-3 px-4 font-mono font-bold text-slate-300">#${r.ride_id}</td>
+                <td class="py-3 px-4">
+                  <div class="font-semibold text-white">${r.source} &rarr; ${r.destination}</div>
+                  <div class="text-[10px] text-slate-400">${r.distance_km} km • Rs ${Number(r.base_fare_per_km).toFixed(2)}/km</div>
+                </td>
+                <td class="py-3 px-4 font-mono text-slate-300">${r.departs}</td>
+                <td class="py-3 px-4">
+                  <span class="text-slate-200">${r.vehicle_model}</span>
+                  <span class="text-[10px] text-slate-500 block font-mono">${r.reg_no}</span>
+                </td>
+                <td class="py-3 px-4 font-mono font-bold ${r.seats_available === 0 ? 'text-purple-400' : 'text-emerald-400'}">
+                  ${r.seats_available} / ${r.seat_capacity}
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-mono ${r.ride_type === 'WOMEN_ONLY' ? 'bg-pink-500/20 text-pink-300' : 'bg-slate-800 text-slate-400'}">
+                    ${r.ride_type}
+                  </span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${statusClass}">${r.status}</span>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  ${isOpen ? `
+                    <button onclick="completeRide(${r.ride_id})" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded text-[11px] font-semibold transition flex items-center gap-1 ml-auto shadow">
+                      <i data-lucide="play" class="w-3 h-3"></i> Complete Ride (Cursor)
+                    </button>
+                  ` : '<span class="text-slate-500 text-[11px]">Finished</span>'}
+                </td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        // Vehicles for Offer Tab
+        const vSel = document.getElementById("offerVehicle");
+        const offerNotice = document.getElementById("offerRoleNotice");
+        const offerBtn = document.getElementById("offerSubmitBtn");
+        if (currentUser.role === 'RIDER') {
+          offerNotice.classList.remove("hidden");
+          offerBtn.disabled = true;
+          offerBtn.classList.add("opacity-50", "cursor-not-allowed");
+        } else {
+          offerNotice.classList.add("hidden");
+          offerBtn.disabled = false;
+          offerBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        }
+        if (currentUser.vehicles && currentUser.vehicles.length > 0) {
+          vSel.innerHTML = currentUser.vehicles.map(v => 
+            `<option value="${v.vehicle_id}">${v.model} (${v.reg_no}, ${v.fuel_type}, ${v.seat_capacity} seats, ${v.emission_g_per_km} g/km)</option>`
+          ).join("");
+        } else {
+          vSel.innerHTML = `<option value="">No vehicle registered</option>`;
+        }
+
+      } catch (e) {
+        console.error("Dashboard load error", e);
+      } finally {
+        lucide.createIcons();
+      }
+    }
+
+    async function loadRides() {
+      try {
+        const src = document.getElementById("filterSrc").value;
+        const dst = document.getElementById("filterDst").value;
+        const hubOnly = document.getElementById("filterHubOnly").checked;
+
+        const url = `/api/rides?user_id=${currentUserId}&src=${encodeURIComponent(src)}&dst=${encodeURIComponent(dst)}&hub_only=${hubOnly}&status=ALL`;
+        const res = await fetch(url);
+        const rides = await res.json();
+
+        const grid = document.getElementById("ridesGrid");
+        if (rides.length === 0) {
+          grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">No rides match your search criteria.</div>`;
+          return;
+        }
+
+        grid.innerHTML = rides.map(r => {
+          const isOpen = r.status === 'OPEN';
+          const isFull = r.status === 'FULL';
+          const isWomenOnly = r.ride_type === 'WOMEN_ONLY';
+          const isMyRide = r.driver_id === currentUserId;
+          const blockedMale = isWomenOnly && currentUser && currentUser.gender !== 'F';
+
+          let fuelBadgeColor = 'bg-slate-800 text-slate-300';
+          if (r.fuel_type === 'EV') fuelBadgeColor = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+          else if (r.fuel_type === 'CNG') fuelBadgeColor = 'bg-teal-500/20 text-teal-400 border border-teal-500/30';
+          else if (r.fuel_type === 'DIESEL') fuelBadgeColor = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+
+          return `
+            <div class="bg-slate-900 border ${isOpen ? 'border-slate-800 hover:border-slate-700' : 'border-slate-800/50 opacity-75'} rounded-2xl p-5 flex flex-col justify-between transition shadow-sm hover:shadow-md">
+              <div class="space-y-3">
+                <!-- Badges header -->
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-mono text-[10px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">#${r.ride_id}</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${fuelBadgeColor}">${r.fuel_type}</span>
+                    ${isWomenOnly ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30 flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> Women-Only</span>` : ''}
+                  </div>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${isOpen ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (isFull ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-800 text-slate-400')}">
+                    ${r.status}
+                  </span>
+                </div>
+
+                <!-- Route -->
+                <div>
+                  <div class="text-sm font-bold text-white flex items-center gap-2">
+                    <span>${r.source}</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500"></i>
+                    <span>${r.destination}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-3 h-3 text-slate-500"></i>
+                    <span>Departs: <strong class="text-slate-200">${r.departs}</strong></span>
+                    <span>&bull;</span>
+                    <span>${r.distance_km} km</span>
+                  </div>
+                </div>
+
+                <!-- Driver & Vehicle details -->
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
+                  <div>
+                    <div class="text-slate-400 text-[10px]">Driver</div>
+                    <div class="font-medium text-white flex items-center gap-1">
+                      ${r.driver_name}
+                      <span class="text-[10px] px-1 rounded bg-slate-800 text-cyan-400 font-mono">${r.driver_trust} pts</span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-slate-400 text-[10px]">Vehicle</div>
+                    <div class="text-slate-200">${r.vehicle_model}</div>
+                  </div>
+                </div>
+
+                <!-- Warning notice if blocked -->
+                ${blockedMale ? `
+                  <div class="p-2 bg-pink-950/40 border border-pink-800/40 rounded-lg text-pink-300 text-[11px] flex items-center gap-1.5">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                    <span>Trigger <code>trg_women_only_check</code> rejects bookings from male riders.</span>
+                  </div>
+                ` : ''}
+
+                ${isMyRide ? `
+                  <div class="p-2 bg-blue-950/40 border border-blue-800/40 rounded-lg text-blue-300 text-[11px]">
+                    You are the driver of this ride. By rule <code>ORA-20011</code>, drivers cannot book their own ride.
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Footer Booking Section -->
+              <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-[10px] text-slate-400">Seats Free / Rate</div>
+                  <div class="font-bold text-white text-xs">
+                    <span class="text-emerald-400 font-mono text-sm">${r.seats_available}</span> / ${r.seat_capacity} free
+                    <span class="text-slate-500 font-normal">(@ Rs ${Number(r.base_fare_per_km).toFixed(2)}/km)</span>
+                  </div>
+                </div>
+                ${isOpen && !isMyRide && !blockedMale ? `
+                  <button onclick="openBookingModal(${JSON.stringify(r).replace(/"/g, '&quot;')})"
+                          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-md shadow-emerald-600/20">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i> Book Seats
+                  </button>
+                ` : `
+                  <button disabled class="bg-slate-800 text-slate-500 text-xs px-3.5 py-2 rounded-xl cursor-not-allowed">
+                    ${isMyRide ? 'Your Ride' : (blockedMale ? 'Women-Only' : (isFull ? 'Ride Full' : r.status))}
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (e) {
+        console.error("Rides load error", e);
+      } finally {
+        lucide.createIcons();
+      }
+    }
+
+    // Booking Modal Handling
+    function openBookingModal(ride) {
+      activeBookingRide = ride;
+      document.getElementById("bmRoute").innerText = `${ride.source} → ${ride.destination}`;
+      document.getElementById("bmDetails").innerText = `Driver: ${ride.driver_name} • Departs: ${ride.departs} • Distance: ${ride.distance_km} km`;
+      document.getElementById("bmRideTypeBadge").innerText = ride.ride_type;
+      
+      const slider = document.getElementById("bmSeatsSlider");
+      slider.max = Math.min(4, ride.seats_available);
+      slider.value = 1;
+
+      document.getElementById("bmUserPoints").innerText = currentUser ? currentUser.green_points : 0;
+      document.getElementById("bmPointsInput").max = currentUser ? currentUser.green_points : 0;
+      document.getElementById("bmPointsInput").value = 0;
+
+      updateBookingFareMath();
+      document.getElementById("bookingModal").classList.remove("hidden");
+    }
+
+    function closeBookingModal() {
+      document.getElementById("bookingModal").classList.add("hidden");
+      activeBookingRide = null;
+    }
+
+    async function updateBookingFareMath() {
+      if (!activeBookingRide) return;
+      const seats = parseInt(document.getElementById("bmSeatsSlider").value);
+      document.getElementById("bmSeatsDisplay").innerText = seats + (seats === 1 ? " seat" : " seats");
+
+      try {
+        const res = await fetch("/api/rides/calc-fare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ride_id: activeBookingRide.ride_id, seats: seats })
+        });
+        const fareData = await res.json();
+        activeBookingCalculation = fareData;
+
+        // Formula
+        document.getElementById("bmCalcFormula").innerText = 
+          `${fareData.distance_km} km × Rs ${fareData.base_rate_per_km.toFixed(2)} × ${seats} = Rs ${fareData.undiscounted_fare.toFixed(2)}`;
+
+        // Occupancy Discount
+        document.getElementById("bmCalcDiscount").innerText = 
+          `${fareData.discount_pct}% (Saved Rs ${fareData.discount_amount.toFixed(2)}) [Post-occupancy: ${fareData.occupancy_after}]`;
+
+        // Points
+        let pts = parseInt(document.getElementById("bmPointsInput").value) || 0;
+        const maxPts = Math.min(currentUser.green_points, Math.floor((fareData.pooled_fare * 0.20) / 0.5));
+        if (pts > maxPts) {
+          pts = maxPts;
+          document.getElementById("bmPointsInput").value = pts;
+        }
+        const ptsDiscount = pts * 0.5;
+        document.getElementById("bmPointsDeduction").innerText = `- Rs ${ptsDiscount.toFixed(2)} (${pts} pts)`;
+
+        const finalFare = Math.max(0, fareData.pooled_fare - ptsDiscount);
+        document.getElementById("bmFinalFare").innerText = `Rs ${finalFare.toFixed(2)}`;
+
+      } catch (e) {
+        console.error("Fare math error", e);
+      }
+    }
+
+    async function submitBooking() {
+      if (!activeBookingRide) return;
+      const btn = document.getElementById("bmSubmitBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Processing in Oracle...`;
+      lucide.createIcons();
+
+      const seats = parseInt(document.getElementById("bmSeatsSlider").value);
+      const pts = parseInt(document.getElementById("bmPointsInput").value) || 0;
+      const payMode = document.querySelector('input[name="bmPayMode"]:checked').value;
+
+      try {
+        const res = await fetch("/api/rides/book", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ride_id: activeBookingRide.ride_id,
+            rider_id: currentUserId,
+            seats: seats,
+            pay_mode: payMode,
+            redeem_points: pts
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          closeBookingModal();
+          showToast(result.messages.join(" • "), "success");
+          await loadUserDashboard();
+          loadRides();
+          loadStats();
+          refreshSqlHistory();
+        } else {
+          showToast(result.error || "Booking failed", "error");
+        }
+      } catch (e) {
+        showToast("Error communicating with database", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Booking (sp_book_ride)`;
+        lucide.createIcons();
+      }
+    }
+
+    // Cancellation
+    async function cancelBooking(bookingId) {
+      if (!confirm(`Are you sure you want to cancel Booking #${bookingId}?\n\nIf departure is within 2 hours, a 5-point trust score penalty will be applied by sp_cancel_booking.`)) {
+        return;
+      }
+      try {
+        const res = await fetch("/api/bookings/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ booking_id: bookingId })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showToast(result.messages.join(" • "), "success");
+          await loadUserDashboard();
+          loadRides();
+          loadStats();
+          refreshSqlHistory();
+        } else {
+          showToast(result.error || "Cancellation refused", "error");
+        }
+      } catch (e) {
+        showToast("Error cancelling booking", "error");
+      }
+    }
+
+    // Driver: Complete Ride (Cursor c_pass)
+    async function completeRide(rideId) {
+      if (!confirm(`Execute sp_complete_ride for Ride #${rideId}?\n\nThis will trigger the explicit parameterised cursor c_pass in Oracle to process all confirmed passengers, record CO2 carbon ledger savings, award Green Points, and credit your driver wallet!`)) {
+        return;
+      }
+      try {
+        const res = await fetch("/api/rides/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ride_id: rideId })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showToast(`Ride #${rideId} closed! ` + result.messages.join(" • "), "success");
+          await loadUserDashboard();
+          loadRides();
+          loadStats();
+          refreshSqlHistory();
+        } else {
+          showToast(result.error || "Could not complete ride", "error");
+        }
+      } catch (e) {
+        showToast("Error calling sp_complete_ride", "error");
+      }
+    }
+
+    // Offer Ride
+    async function handleOfferRide(e) {
+      e.preventDefault();
+      const veh = document.getElementById("offerVehicle").value;
+      const src = document.getElementById("offerSource").value;
+      const dst = document.getElementById("offerDest").value;
+      const dep = document.getElementById("offerDeparture").value.replace("T", " ");
+      const dist = document.getElementById("offerDistance").value;
+      const rate = document.getElementById("offerRate").value;
+      const seats = document.getElementById("offerSeats").value;
+      const rtype = document.getElementById("offerRideType").value;
+
+      if (src === dst) {
+        showToast("Constraint ck_ride_route violation: Source and Destination cannot be the same!", "error");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/rides/offer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            driver_id: currentUserId,
+            vehicle_id: parseInt(veh),
+            source_id: parseInt(src),
+            dest_id: parseInt(dst),
+            departure_time: dep,
+            distance_km: parseFloat(dist),
+            base_fare_per_km: parseFloat(rate),
+            seats_available: parseInt(seats),
+            ride_type: rtype
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showToast(result.message, "success");
+          setTab("dashboard");
+          await loadUserDashboard();
+          loadRides();
+          loadStats();
+          refreshSqlHistory();
+        } else {
+          showToast(result.error || "Database rejected the ride", "error");
+        }
+      } catch (e) {
+        showToast("Error offering ride", "error");
+      }
+    }
+
+    // Ratings & Feedback
+    async function loadPendingRatings() {
+      try {
+        const res = await fetch(`/api/ratings/pending?user_id=${currentUserId}`);
+        const list = await res.json();
+        const container = document.getElementById("pendingRatingsContainer");
+        if (list.length === 0) {
+          container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">No pending ratings for ${currentUser ? currentUser.full_name : 'this user'}. Complete a trip to leave feedback!</div>`;
+          return;
+        }
+        container.innerHTML = list.map(item => `
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+            <div>
+              <div class="font-bold text-white text-sm">${item.ratee_name} (${item.ratee_role})</div>
+              <div class="text-slate-400 text-[11px]">Booking #${item.booking_id} • ${item.source} &rarr; ${item.destination}</div>
+            </div>
+            <button onclick="openRatingModal(${JSON.stringify(item).replace(/"/g, '&quot;')})"
+                    class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1 shadow">
+              <i data-lucide="star" class="w-3.5 h-3.5"></i> Rate Now
+            </button>
+          </div>
+        `).join("");
+        lucide.createIcons();
+      } catch (e) {
+        console.error("Pending ratings error", e);
+      }
+    }
+
+    function openRatingModal(item) {
+      pendingRatingTarget = item;
+      document.getElementById("rmTitle").innerText = `Rate ${item.ratee_name} (${item.ratee_role})`;
+      document.getElementById("rmSubtitle").innerText = `Booking #${item.booking_id}: ${item.source} to ${item.destination}`;
+      setRatingStars(5);
+      document.getElementById("rmComment").value = "";
+      document.getElementById("ratingModal").classList.remove("hidden");
+    }
+
+    function closeRatingModal() {
+      document.getElementById("ratingModal").classList.add("hidden");
+      pendingRatingTarget = null;
+    }
+
+    function setRatingStars(n) {
+      selectedRatingStars = n;
+      const btns = document.querySelectorAll(".star-btn");
+      btns.forEach((b, idx) => {
+        b.className = idx < n ? "star-btn text-2xl text-amber-400 hover:scale-110 transition" : "star-btn text-2xl text-slate-700 hover:scale-110 transition";
+      });
+      const labels = {
+        5: "5 Stars (+2 Trust Points)",
+        4: "4 Stars (+1 Trust Point)",
+        3: "3 Stars (0 Trust Points)",
+        2: "2 Stars (-3 Trust Points)",
+        1: "1 Star (-5 Trust Points)"
+      };
+      document.getElementById("starRatingLabel").innerText = labels[n];
+    }
+
+    async function submitRating() {
+      if (!pendingRatingTarget) return;
+      const comment = document.getElementById("rmComment").value.trim();
+      try {
+        const res = await fetch("/api/ratings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            booking_id: pendingRatingTarget.booking_id,
+            rater_id: currentUserId,
+            ratee_id: pendingRatingTarget.ratee_id,
+            stars: selectedRatingStars,
+            comment: comment
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          closeRatingModal();
+          showToast(result.message, "success");
+          loadPendingRatings();
+          loadUserDashboard();
+          refreshSqlHistory();
+        } else {
+          showToast(result.error || "Rating rejected by database", "error");
+        }
+      } catch (e) {
+        showToast("Error saving rating", "error");
+      }
+    }
+
+    // Topup Wallet
+    function openTopupModal() {
+      if (currentUser) {
+        document.getElementById("topupUserName").innerText = `${currentUser.full_name} (Current: Rs ${Number(currentUser.wallet_balance).toFixed(2)})`;
+      }
+      document.getElementById("topupModal").classList.remove("hidden");
+    }
+
+    function closeTopupModal() {
+      document.getElementById("topupModal").classList.add("hidden");
+    }
+
+    function setTopupPreset(amt) {
+      document.getElementById("topupAmount").value = amt;
+    }
+
+    async function submitTopup() {
+      const amt = parseFloat(document.getElementById("topupAmount").value);
+      if (isNaN(amt) || amt <= 0) return;
+      try {
+        const res = await fetch("/api/wallet/topup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: currentUserId, amount: amt })
+        });
+        const result = await res.json();
+        if (result.success) {
+          closeTopupModal();
+          showToast(`Wallet credited: Rs ${result.before.toFixed(2)} → Rs ${result.after.toFixed(2)}`, "success");
+          await loadUserDashboard();
+          refreshSqlHistory();
+        }
+      } catch (e) {
+        showToast("Error updating wallet", "error");
+      }
+    }
+
+    // 20 SQL Queries Tab
+    async function loadQueries() {
+      try {
+        const res = await fetch("/api/queries");
+        allQueries = await res.json();
+        const container = document.getElementById("queriesListContainer");
+        container.innerHTML = allQueries.map(q => `
+          <button onclick="selectQuery(${q.no})" id="qBtn-${q.no}"
+                  class="w-full text-left p-2.5 rounded-lg text-xs font-medium transition flex items-center justify-between border border-transparent hover:bg-slate-800 ${q.no === 1 ? 'bg-slate-800 border-slate-700 text-white' : 'text-slate-400'}">
+            <span class="truncate">Q${q.no}. ${q.title}</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500"></i>
+          </button>
+        `).join("");
+        lucide.createIcons();
+        if (allQueries.length > 0) selectQuery(1);
+      } catch (e) {
+        console.error("Queries load error", e);
+      }
+    }
+
+    function selectQuery(qno) {
+      activeQueryNo = qno;
+      document.querySelectorAll("[id^='qBtn-']").forEach(btn => {
+        btn.classList.remove("bg-slate-800", "border-slate-700", "text-white");
+        btn.classList.add("text-slate-400");
+      });
+      const activeBtn = document.getElementById("qBtn-" + qno);
+      if (activeBtn) {
+        activeBtn.classList.add("bg-slate-800", "border-slate-700", "text-white");
+        activeBtn.classList.remove("text-slate-400");
+      }
+
+      const q = allQueries.find(x => x.no === qno);
+      if (!q) return;
+      document.getElementById("activeQCategory").innerText = `Q${q.no}`;
+      document.getElementById("activeQTitle").innerText = q.title;
+      document.getElementById("activeQDesc").innerText = q.desc || "Review II course requirement SQL query";
+      document.getElementById("activeQSql").innerText = q.sql;
+      document.getElementById("queryMetaBar").classList.add("hidden");
+    }
+
+    async function runActiveQuery() {
+      const btn = document.getElementById("runQueryBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Running in Oracle...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch(`/api/queries/run/${activeQueryNo}`);
+        const data = await res.json();
+        if (data.error) {
+          showToast(data.error, "error");
+          return;
+        }
+
+        document.getElementById("queryRowsCount").innerText = data.row_count;
+        document.getElementById("queryExecTime").innerText = data.execution_ms + " ms";
+        document.getElementById("queryMetaBar").classList.remove("hidden");
+
+        // Thead
+        const thead = document.getElementById("queryResultThead");
+        thead.innerHTML = `<tr>${data.columns.map(c => `<th class="py-2.5 px-4">${c}</th>`).join("")}</tr>`;
+
+        // Tbody
+        const tbody = document.getElementById("queryResultTbody");
+        if (data.rows.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${data.columns.length}" class="py-4 text-center text-slate-500">Query returned 0 rows.</td></tr>`;
+        } else {
+          tbody.innerHTML = data.rows.map(r => `
+            <tr class="hover:bg-slate-800/40 transition">
+              ${r.map(v => `<td class="py-2.5 px-4 font-mono">${v !== null ? v : '<span class="text-slate-600">NULL</span>'}</td>`).join("")}
+            </tr>
+          `).join("");
+        }
+
+        refreshSqlHistory();
+      } catch (e) {
+        showToast("Error running query", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> Run Query Live`;
+        lucide.createIcons();
+      }
+    }
+
+    // Guided Demo (T1 - T5)
+    async function loadDemoSteps() {
+      try {
+        const res = await fetch("/api/demo/steps");
+        const steps = await res.json();
+        const container = document.getElementById("demoStepsContainer");
+        container.innerHTML = steps.map(s => `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">${s.id}</span>
+                  <h3 class="text-sm font-bold text-white">${s.title}</h3>
+                </div>
+                <div class="text-xs text-slate-400 mt-1">
+                  <strong>User Operation:</strong> ${s.operation} &bull; <strong>DB Processing:</strong> ${s.processing}
+                </div>
+              </div>
+              <button onclick="runDemoStep('${s.id}')" id="btnStep-${s.id}"
+                      class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-rose-600/20">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i> Execute Step ${s.id}
+              </button>
+            </div>
+
+            <!-- SQL Code Snippet -->
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider block mb-1">PL/SQL Transaction Code:</span>
+              <pre class="text-xs text-emerald-400 overflow-x-auto">${s.sql}</pre>
+            </div>
+
+            <!-- Expected Result -->
+            <div class="text-xs text-slate-300 flex items-center gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+              <i data-lucide="check" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+              <span><strong>Expected Result:</strong> ${s.result}</span>
+            </div>
+
+            <!-- Output Container for Before / After Tables -->
+            <div id="demoResult-${s.id}" class="hidden space-y-3 pt-3 border-t border-slate-800">
+              <!-- Rendered upon execution -->
+            </div>
+          </div>
+        `).join("");
+        lucide.createIcons();
+      } catch (e) {
+        console.error("Demo steps load error", e);
+      }
+    }
+
+    async function runDemoStep(stepId) {
+      const btn = document.getElementById(`btnStep-${stepId}`);
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Executing in Oracle...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch(`/api/demo/run-step/${stepId}`, { method: "POST" });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.error || "Step execution failed", "error");
+          return;
+        }
+
+        showToast(`Transaction ${stepId} completed!`, "success");
+        const outDiv = document.getElementById(`demoResult-${stepId}`);
+        outDiv.classList.remove("hidden");
+
+        // Format DBMS_OUTPUT lines
+        const msgs = data.output_messages.map(m => `<div class="text-emerald-300 font-mono text-xs">• ${m}</div>`).join("");
+
+        // Build side-by-side BEFORE and AFTER tables
+        let tablesHtml = "";
+        for (const viewName of Object.keys(data.before)) {
+          const bView = data.before[viewName];
+          const aView = data.after[viewName];
+
+          tablesHtml += `
+            <div class="space-y-2">
+              <div class="text-xs font-bold text-slate-300 font-mono flex items-center gap-2">
+                <i data-lucide="table" class="w-3.5 h-3.5 text-cyan-400"></i> ${viewName} (State Change)
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+                
+                <!-- BEFORE -->
+                <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                  <div class="bg-slate-800/80 px-3 py-1 text-[10px] uppercase font-mono font-bold text-slate-400">BEFORE Execution</div>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left font-mono">
+                      <thead class="bg-slate-900 text-slate-500 text-[10px]">
+                        <tr>${bView.columns.map(c => `<th class="py-1.5 px-3">${c}</th>`).join("")}</tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                        ${bView.rows.map(r => `<tr>${r.map(v => `<td class="py-1 px-3">${v !== null ? v : '-'}</td>`).join("")}</tr>`).join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- AFTER -->
+                <div class="bg-slate-950 border border-emerald-900/40 rounded-xl overflow-hidden shadow-sm shadow-emerald-500/5">
+                  <div class="bg-emerald-950/60 text-emerald-300 px-3 py-1 text-[10px] uppercase font-mono font-bold">AFTER Execution</div>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left font-mono">
+                      <thead class="bg-slate-900 text-slate-500 text-[10px]">
+                        <tr>${aView.columns.map(c => `<th class="py-1.5 px-3">${c}</th>`).join("")}</tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-800/60 text-emerald-300 font-semibold">
+                        ${aView.rows.map(r => `<tr>${r.map(v => `<td class="py-1 px-3">${v !== null ? v : '-'}</td>`).join("")}</tr>`).join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          `;
+        }
+
+        outDiv.innerHTML = `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+            <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">DBMS_OUTPUT Stream:</span>
+            ${msgs || '<div class="text-slate-500 text-xs">Transaction completed successfully.</div>'}
+          </div>
+          ${tablesHtml}
+        `;
+
+        await loadUserDashboard();
+        loadRides();
+        loadStats();
+        refreshSqlHistory();
+      } catch (e) {
+        showToast("Error executing step", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> Re-execute Step ${stepId}`;
+        lucide.createIcons();
+      }
+    }
+
+    // Automated Self-Test (19 Proofs)
+    async function runSelftestSuite() {
+      const btn = document.getElementById("runSelftestBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Running in Oracle XE...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch("/api/selftest");
+        const data = await res.json();
+
+        document.getElementById("stTotal").innerText = data.total;
+        document.getElementById("stPassed").innerText = data.passed;
+        document.getElementById("stFailed").innerText = data.failed;
+        document.getElementById("stTime").innerText = data.execution_ms + " ms";
+        document.getElementById("selftestScorecard").classList.remove("hidden");
+
+        const tbody = document.getElementById("selftestTableBody");
+        tbody.innerHTML = data.results.map((r, i) => `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-2.5 px-4 font-mono text-slate-500">${i + 1}</td>
+            <td class="py-2.5 px-4 text-slate-400 font-medium">${r.category}</td>
+            <td class="py-2.5 px-4 font-semibold text-white">${r.test}</td>
+            <td class="py-2.5 px-4 font-mono text-[11px] text-cyan-400">${r.needle}</td>
+            <td class="py-2.5 px-4 font-mono text-[11px] text-slate-300 max-w-xs truncate" title="${r.detail}">${r.detail}</td>
+            <td class="py-2.5 px-4 text-center">
+              ${r.passed ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <i data-lucide="check" class="w-3 h-3"></i> PASS
+                </span>
+              ` : `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/30">
+                  <i data-lucide="x" class="w-3 h-3"></i> FAIL
+                </span>
+              `}
+            </td>
+          </tr>
+        `).join("");
+
+        showToast(`${data.passed} / ${data.total} proofs passed on Oracle XE!`, "success");
+        refreshSqlHistory();
+      } catch (e) {
+        showToast("Error executing self-test", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i> Run All 19 Proof Tests`;
+        lucide.createIcons();
+      }
+    }
+
+    // Reset Database
+    async function confirmResetDb() {
+      if (!confirm("Are you sure you want to reset the database?\n\nThis will re-execute 01_schema.sql to 05_procedures.sql and restore the original 126 seed rows (Review II baseline).")) {
+        return;
+      }
+      try {
+        const res = await fetch("/api/db/reset", { method: "POST" });
+        const result = await res.json();
+        if (result.success) {
+          showToast("Database successfully restored to 126 seed rows!", "success");
+          await loadUserDashboard();
+          loadRides();
+          loadStats();
+          refreshSqlHistory();
+        } else {
+          showToast(result.error || "Reset failed", "error");
+        }
+      } catch (e) {
+        showToast("Error resetting database", "error");
+      }
+    }
+
+    // Show-SQL Drawer
+    function toggleSqlDrawer() {
+      const drawer = document.getElementById("sqlDrawer");
+      drawer.classList.toggle("hidden");
+      if (!drawer.classList.contains("hidden")) {
+        refreshSqlHistory();
+      }
+    }
+
+    async function refreshSqlHistory() {
+      try {
+        const res = await fetch("/api/sql-history");
+        const list = await res.json();
+        document.getElementById("sqlCountBadge").innerText = list.length;
+        const container = document.getElementById("sqlLogsContainer");
+        if (list.length === 0) {
+          container.innerHTML = `<div class="text-slate-500 text-center py-4 text-xs">No SQL operations executed yet.</div>`;
+          return;
+        }
+        container.innerHTML = list.map(item => `
+          <div class="bg-slate-900 p-2.5 rounded-lg border ${item.error ? 'border-rose-900/60' : 'border-slate-800'} space-y-1">
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+              <span>${item.timestamp}</span>
+              <span class="${item.error ? 'text-rose-400 font-bold' : 'text-cyan-400'}">${item.duration_ms} ms</span>
+            </div>
+            <pre class="text-emerald-400 overflow-x-auto text-[11px] leading-tight">${item.sql}</pre>
+            ${item.params ? `<div class="text-slate-400 text-[10px]">binds: ${item.params}</div>` : ''}
+            ${item.error ? `<div class="text-rose-400 text-[10px] font-bold">Error: ${item.error}</div>` : ''}
+          </div>
+        `).join("");
+      } catch (e) {
+        console.error("SQL history load error", e);
+      }
+    }
+
+    // Toast helper
+    function showToast(msg, type = "info") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      const colors = {
+        success: "bg-emerald-950 border-emerald-800 text-emerald-200",
+        error: "bg-red-950 border-red-800 text-red-200",
+        info: "bg-slate-900 border-slate-700 text-slate-200"
+      };
+      toast.className = `${colors[type] || colors.info} border px-4 py-2.5 rounded-xl shadow-2xl text-xs flex items-center gap-2 pointer-events-auto transition duration-300 transform translate-y-2 opacity-0 max-w-sm`;
+      toast.innerHTML = `<span>${msg}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      });
+
+      setTimeout(() => {
+        toast.classList.add("translate-y-2", "opacity-0");
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
